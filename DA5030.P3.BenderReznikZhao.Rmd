@@ -175,18 +175,169 @@ plant_df[1:5, c("cluster", "fl", "ga", "nc", "sc")]
 ```
 As we can see, some of the species that are prevalent in similar climate zones are indeed in the same cluster.
 
-Let's see the states/provinces represented by each cluster. 
+Let's see the states/provinces represented by each cluster. We are going to do this by adding up all of the 1s locate din each states column.
 
 ```{r}
 library(tidyverse)
+#filter the data by cluster number then add columns and transpose
+clust1_top <- plant_df %>% filter(cluster == 1) %>% summarise_all(funs(sum)) %>% t()
 
+#remove cluster row and make data frame
+clust1_top <- as.data.frame(clust1_top[-71,])
+#rename sum column as number of plants
+colnames(clust1_top) <- "numberOfPlants"
+#make a 1st column with the state names
+clust1_top <- rownames_to_column(clust1_top, "State/Province")
+#put columns in descending order by number of plants
+clust1_top <- clust1_top[order(-clust1_top$numberOfPlants),]
+#display top 10 by cluster
+clust1_top[1:10,]
+```
 
+```{r}
+#filter the data by cluster number then add columns and transpose
 clust2_top <- plant_df %>% filter(cluster == 2) %>% summarise_all(funs(sum)) %>% t()
 
+#remove cluster row and make data frame
 clust2_top <- as.data.frame(clust2_top[-71,])
-
-clust2_top %>% arrange(desc())
+#rename sum column as number of plants
+colnames(clust2_top) <- "numberOfPlants"
+#make a 1st column with the state names
+clust2_top <- rownames_to_column(clust2_top, "State/Province")
+#put columns in descending order by number of plants
+clust2_top <- clust2_top[order(-clust2_top$numberOfPlants),]
+#display top 10 by cluster
+clust2_top[1:10,]
 ```
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust3_top <- plant_df %>% filter(cluster == 3) %>% summarise_all(funs(sum)) %>% t()
+
+#remove cluster row and make data frame
+clust3_top <- as.data.frame(clust3_top[-71,])
+#rename sum column as number of plants
+colnames(clust3_top) <- "numberOfPlants"
+#make a 1st column with the state names
+clust3_top <- rownames_to_column(clust3_top, "State/Province")
+#put columns in descending order by number of plants
+clust3_top <- clust3_top[order(-clust3_top$numberOfPlants),]
+#display top 10 by cluster
+clust3_top[1:10,]
+```
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust4_top <- plant_df %>% filter(cluster == 4) %>% summarise_all(funs(sum)) %>% t()
+
+#remove cluster row and make data frame
+clust4_top <- as.data.frame(clust4_top[-71,])
+#rename sum column as number of plants
+colnames(clust4_top) <- "numberOfPlants"
+#make a 1st column with the state names
+clust4_top <- rownames_to_column(clust4_top, "State/Province")
+#put columns in descending order by number of plants
+clust4_top <- clust4_top[order(-clust4_top$numberOfPlants),]
+#display top 10 by cluster
+clust4_top[1:10,]
+```
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust5_top <- plant_df %>% filter(cluster == 5) %>% summarise_all(funs(sum)) %>% t()
+
+#remove cluster row and make data frame
+clust5_top <- as.data.frame(clust5_top[-71,])
+#rename sum column as number of plants
+colnames(clust5_top) <- "numberOfPlants"
+#make a 1st column with the state names
+clust5_top <- rownames_to_column(clust5_top, "State/Province")
+#put columns in descending order by number of plants
+clust5_top <- clust5_top[order(-clust5_top$numberOfPlants),]
+#display top 10 by cluster
+clust5_top[1:10,]
+```
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust6_top <- plant_df %>% filter(cluster == 6) %>% summarise_all(funs(sum)) %>% t()
+
+#remove cluster row and make data frame
+clust6_top <- as.data.frame(clust6_top[-71,])
+#rename sum column as number of plants
+colnames(clust6_top) <- "numberOfPlants"
+#make a 1st column with the state names
+clust6_top <- rownames_to_column(clust6_top, "State/Province")
+#put columns in descending order by number of plants
+clust6_top <- clust6_top[order(-clust6_top$numberOfPlants),]
+#display top 10 by cluster
+clust6_top[1:10,]
+```
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust7_top <- plant_df %>% filter(cluster == 7) %>% summarise_all(funs(sum)) %>% t()
+
+#remove cluster row and make data frame
+clust7_top <- as.data.frame(clust7_top[-71,])
+#rename sum column as number of plants
+colnames(clust7_top) <- "numberOfPlants"
+#make a 1st column with the state names
+clust7_top <- rownames_to_column(clust7_top, "State/Province")
+#put columns in descending order by number of plants
+clust7_top <- clust7_top[order(-clust7_top$numberOfPlants),]
+#display top 10 by cluster
+clust7_top[1:10,]
+```
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust8_top <- plant_df %>% filter(cluster == 8) %>% summarise_all(funs(sum)) %>% t()
+
+#remove cluster row and make data frame
+clust8_top <- as.data.frame(clust8_top[-71,])
+#rename sum column as number of plants
+colnames(clust8_top) <- "numberOfPlants"
+#make a 1st column with the state names
+clust8_top <- rownames_to_column(clust8_top, "State/Province")
+#put columns in descending order by number of plants
+clust8_top <- clust8_top[order(-clust8_top$numberOfPlants),]
+#display top 10 by cluster
+clust8_top[1:10,]
+```
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust9_top <- plant_df %>% filter(cluster == 9) %>% summarise_all(funs(sum)) %>% t()
+
+#remove cluster row and make data frame
+clust9_top <- as.data.frame(clust9_top[-71,])
+#rename sum column as number of plants
+colnames(clust9_top) <- "numberOfPlants"
+#make a 1st column with the state names
+clust9_top <- rownames_to_column(clust9_top, "State/Province")
+#put columns in descending order by number of plants
+clust9_top <- clust9_top[order(-clust9_top$numberOfPlants),]
+#display top 10 by cluster
+clust9_top[1:10,]
+```
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust10_top <- plant_df %>% filter(cluster == 10) %>% summarise_all(funs(sum)) %>% t()
+
+#remove cluster row and make data frame
+clust10_top <- as.data.frame(clust10_top[-71,])
+#rename sum column as number of plants
+colnames(clust10_top) <- "numberOfPlants"
+#make a 1st column with the state names
+clust10_top <- rownames_to_column(clust10_top, "State/Province")
+#put columns in descending order by number of plants
+clust10_top <- clust10_top[order(-clust10_top$numberOfPlants),]
+#display top 10 by cluster
+clust10_top[1:10,]
+```
+
+
 
 ```{r}
 #age differences between clusters

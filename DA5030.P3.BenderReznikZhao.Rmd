@@ -1,0 +1,290 @@
+---
+title: "DA5030.P3.BenderReznikZhao"
+author: "AlexBender"
+date: "November 24, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+We will load that data into a sparse matrix with 70 columns instead of a data frame using the arules package. 
+
+```{r}
+#install.packages("arules")
+library(arules)
+```
+The way the data is formatted, it wouldn't be correct to just import as a dataframe. As the data description states, it is in transactional form, so we are going to use the read.transactions function from the arules package, which will read in the data correctly. We should see a sparse matrix with 70 columns and ~34000 rows. The read transactions function creates an object of class transactions in order to load information from the data. 
+```{r}
+#load the data as a spare matrix
+plants <- read.transactions("plants.data.txt", format = "basket", sep = ",", cols = 1)
+
+#explore data
+summary(plants)
+```
+This summary shows us good information about the plant "transactions". We can see that California is the most common location for the plants to be located. Additionally, there is an average of ~9 distinct states/provinces that a plant is located in. 
+
+Let's explore a little more. 
+
+```{r}
+#explore the first 5 transaction sets
+inspect(plants[1:5])
+```
+This is broken up just like the original CSV file, but the format is a bit weird. Let's explore a more typical format. 
+
+```{r}
+#explore frequency of a few states
+itemFrequency(plants[ , 1:3])
+```
+Now let's explore these transactions visually. Here are the states/provinces with at least 15% support. 
+
+```{r}
+#plot states with more than 15% support
+itemFrequencyPlot(plants, support = 0.15)
+```
+
+Now let's plot the top 15 states/provinces. 
+
+```{r}
+#plot top 15 states
+itemFrequencyPlot(plants, topN = 15)
+```
+Let's visualize the spare matrix using the image() function. 
+
+```{r}
+image(plants[1:10])
+```
+
+The number of small gray squares per row indicates the number of states per plant. 
+
+It's hard to visualize a lot of rows in this, but let's try to visualize random samples. 
+
+```{r}
+image(sample(plants, 75))
+```
+
+Now that we have an idea of the way this data is loaded, let's convert this to a useable form for k-means clustering. Since kmeans uses distance measues and coordinate centroids to determine clusters, all features must be numerical. Currently we have only character data. 
+
+To do this, we are going to convert the transactional sparse matrix into a logical matrix. The columns will be the species name and then the 69 different states and provinces located in the data -- one for each state/province. The rows will be each species followed by a FALSE in the columns in which that species is not located and a TRUE in the columns in which the species is located. 
+
+```{r}
+#the arules function as() with the "matrix" parameter converts the transactional sparse matrix into a logical matrix
+plant_matrix <- as(plants, "matrix")
+
+#let's make sure it worked
+head(plant_matrix[,1:5])
+```
+
+As you can see, this matrix contains the 70 columns in the data with a TRUE in states that the species is located and a FALSE in the states that the species is not located. 
+
+We still can't do clustering with this since it is not numerical. Our end goal will be this same matrix but with a 1 for TRUE (presence) and a 0 for FALSE (absence). In order to convert this to numerical we are going to do a very simple solution: multiple the whole matrix by 1. If a cell = TRUE, 1*1=1. If a cell = FALSE, 1*0=0.
+```{r}
+#multiple matrix by 1
+plant_matrix <- 1*plant_matrix
+
+#see if it worked
+head(plant_matrix[,1:5])
+```
+Perfect! To do a quick spot check, based on the data we know that the 5th species (abies) is located in Alabama(ab), Alaska(ak), and Arizona(az), but not Alberta(al) or Arkansas(ar).  This checks out because the only columns with 1s in them are ab, ak, az for abies. 
+
+Now that we have our binary/numerical matrix of species locations, let's do some clustering! 
+
+We know that a Hamming distance is great for binary distances. Since all values are either 0 or 1, we could use a hamming distance for the k-means clustering. The default for the kmeans package is Euclidean, however. 
+
+First, let's explore if there are any NA values. 
+
+```{r}
+#explore if NAs
+summary(plant_matrix)
+```
+We are assuming that all 1 values were inputted correctly and any missing values turned into 0s, meaning that if it is missing data this would be marked as absence of this species in this area. There are no additional NA values, woo!
+
+However, if there are species that are not present in any of the states/provinces, then we don't need them in our clustering since they don't add any value. We are going to check for this by taking a sum of the rows. If the sum is 0, meaning all values are 0, we will remove that row. 
+
+```{r}
+#display which rows have a 0 sum
+plant_matrix[which(rowSums(plant_matrix)==0)]
+```
+
+There are no species that have no locations; this is good!
+
+
+
+
+Now let's convert the matrix to a data frame in order to properly cluster the data. 
+
+```{r}
+plant_df <- as.data.frame(plant_matrix)
+```
+
+Choose k by geographical/climate regions as well as by plant hieracrhy
+
+Choosing a proper value for k is one of the most difficult things in k-means clustering. Since there is no hard and fast rule, it is a kind of arbitrary process. The best way to pick a k value is through subject matter expertise and context knowledge. For this example, three possible cluster amounts come to mind. First, we can cluster based on climactic regions. Second, we can cluster based on geographical regions. Third, we can cluster based on families of plants located in the data. Since plant classification is very hierarchical and defined, this shouldn't be too hard to find. 
+
+First, we are going to use a k of 10, which represents the 10 climactic regions/habitat types of North America: 
+
+1) Tropical Moist Broadleaf Forests
+2) Tropical Dry Broadleaf Forests
+3) Temperate Broadleaf and Mixed Forests
+4) Temperate Coniferous Forests
+5) Temperate Grasslands, Savannas, and Shrublands
+6) Flooded Grasslands
+7) Mediterranean Forests, Woodlands, Savanna, and Scrub
+8) Deserts and Xeric Shrublands
+9) Taiga and Boreal Forests
+10) Tundra 
+
+```{r}
+#set random seed to follow
+set.seed(1234)
+
+plant_clusters <- kmeans(plant_df, 10)
+```
+
+
+Now we have our clusters! Let's investigate further and evaluate performance. 
+
+Let's check out the relative size of the clusters.
+
+```{r}
+plant_clusters$size
+```
+
+There is a pretty large disparity is cluster size. Let's check out the cluster centroids now. 
+
+```{r}
+plant_clusters$centers
+```
+
+
+If a number here is above 0.5 it indicates that the cluster is above average in interest in that category.The closer to 1 the stronger the relationship between the state and the cluster. The closer to 0, the weaker the relationship. For example, clusters 2, 6, 10 are above average in Wyoming (and other states as well). 
+
+Now let's try try to improve model performance. 
+
+Let's add the clusters as a column to the original data frame. 
+
+```{r}
+plant_df$cluster <- plant_clusters$cluster
+```
+
+Check it out with some states in the Southeastern USA.
+
+```{r}
+plant_df[1:5, c("cluster", "fl", "ga", "nc", "sc")]
+```
+As we can see, some of the species that are prevalent in similar climate zones are indeed in the same cluster.
+
+Let's see the states/provinces represented by each cluster. 
+
+```{r}
+library(tidyverse)
+
+
+clust2_top <- plant_df %>% filter(cluster == 2) %>% summarise_all(funs(sum)) %>% t()
+
+clust2_top <- as.data.frame(clust2_top[-71,])
+
+clust2_top %>% arrange(desc())
+```
+
+```{r}
+#age differences between clusters
+aggregate(data = plant_df, . ~ cluster,mean)
+
+#gender differences between clusters
+aggregate(data = plant_df, ct ~ cluster, mean)
+```
+Not much variation between ages. However, there are some significant differences in presence of Females in the different clusters. 
+
+Let's see if number of friends is different by cluster. 
+
+```{r}
+aggregate(data = teens, friends ~ cluster, mean)
+```
+Definite variation! Princesses have the most friends and Basket Cases have the least. 
+
+This k-means clustering shows significant actionable variation between the 5 clusters. 
+
+
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Let's run the apriori algorithm!
+
+```{r}
+plantrules <- apriori(plants)
+```
+
+We have a set of 506 rules. This is because by default we are only accepting the states with at least 3478 plants (10%). A lot of *hopefully* generalizeable rules were made. Let's see how useful these are by evaluating our model. 
+
+```{r}
+summary(plantrules)
+```
+This summary tells us a lot about our plant/state association rules. It seems that we chose good support and confidence levels since the lift is definitely high (>1)
+
+Let's inspect a few rules.
+
+
+```{r}
+inspect(plantrules[2:4])
+```
+
+This shows us that 81% of plants that appear in Wyoming also appear in Montana. With a support of 0.11 and a lift of 5.8. This means that the data shows that there is a relationship between these two states having similar plants that is more likely than by chance alone. 
+
+Now let's try to improve the model performance. Let's sort the rules by lift to see the most relevant ones. 
+
+```{r}
+inspect(sort(plantrules, by = "lift")[1:5])
+```
+These rules show that for example, plants in Connecticut are about 7 times more likely to also occur in Massachussets, New Jersey, and New York than the average state. 
+
+Let's explore just the state: Colorado. 
+
+```{r}
+oregonrules <- subset(plantrules, items %in% "or")
+
+inspect(oregonrules)
+```
+
+This is cool! We can see all states' flora associated with Oregon such as Washington, Idaho, and British Colombia. This is exactly what we'd expect based on Geography. 
+
+Now let's write these rules to a file. 
+
+```{r}
+write(plantrules, file = "plantrules.csv", sep = ",", quote = TRUE, row.names = FALSE)
+```
+
+Let's also try converting the rules to a dataframe. 
+
+```{r}
+plantrules_df <- as(plantrules, "data.frame")
+
+#explore df 
+str(plantrules_df)
+summary(plantrules_df)
+```
+
+
+
+
+
+
+
+
+

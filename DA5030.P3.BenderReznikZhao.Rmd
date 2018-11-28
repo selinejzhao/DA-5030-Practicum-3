@@ -338,28 +338,50 @@ clust10_top[1:10,]
 ```
 
 
+This k-means clustering shows significant actionable variation between the 10 clusters. 
 
+Theoretically, we would try to run this same 10 cluster approach but use Hamming(binary) distance instead of Euclidean. However, we weren't able to find a package to implement this seamlessly.
+
+
+Now let's run with our analysis using 10 clusters based on climactic regions/habitat areas. We are going to attempt to visualize these clusters. To do this we will be using the packages factoextra and cluster. 
 ```{r}
-#age differences between clusters
-aggregate(data = plant_df, . ~ cluster,mean)
-
-#gender differences between clusters
-aggregate(data = plant_df, ct ~ cluster, mean)
+#if(!require(devtools)) install.packages("devtools")
+#devtools::install_github("kassambara/factoextra")
+#install.packages("cluster")
+library(factoextra)
+library(cluster)
 ```
-Not much variation between ages. However, there are some significant differences in presence of Females in the different clusters. 
 
-Let's see if number of friends is different by cluster. 
-
+Let's create a visualization of the 10 clusters. 
 ```{r}
-aggregate(data = teens, friends ~ cluster, mean)
+fviz_cluster(plant_clusters, data = plant_df, geom = "point", stand = FALSE, ellipse.type = "norm")
 ```
-Definite variation! Princesses have the most friends and Basket Cases have the least. 
-
-This k-means clustering shows significant actionable variation between the 5 clusters. 
+ It looks like there isn't much overlap in the clusters, which indicates a good value of k was chosen! The 10 different clusters are clearly visible. 
 
 
- 
- 
+Now let's do an elbow plot to determine a possible optimal value of k mathematicall based on homogeneity within the clusters at different k values. We will see how our context/subject matter guesses pan out. 
+```{r}
+set.seed(1234)
+# Compute and plot wss for k = 2 to k = 15
+# Maximal number of clusters based on when the graph inflects
+k.max <- 20 
+
+#calculate within cluster homogeneity at each value of k
+wss <- sapply(1:k.max, function(k){kmeans(plant_df, k)$tot.withinss})
+
+#plot the homogenity "score" at each value of k 1:20.
+plot(1:k.max, wss,
+       type="b", pch = 19, frame = FALSE, 
+       xlab="Number of clusters K",
+       ylab="Total within-clusters sum of squares")
+
+#plot a line at the supposed inflection point
+abline(v = 7, lty =2)
+```
+It looks like anywhere in the range of 5-10 seems like a good number of clusters; this is pretty spot on with our initial educated guesses.
+
+This amount of clusters (5-10) balances not overfitting while still having high homogeneity within clusters. 
+
 
 
 

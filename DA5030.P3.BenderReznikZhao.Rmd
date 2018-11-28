@@ -1,13 +1,14 @@
 ---
-title: "DA5030.P3.BenderReznikZhao"
+title: "test"
 author: "AlexBender"
-date: "November 24, 2018"
+date: "November 28, 2018"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
 
 We will load that data into a sparse matrix with 70 columns instead of a data frame using the arules package. 
 
@@ -19,7 +20,6 @@ The way the data is formatted, it wouldn't be correct to just import as a datafr
 ```{r}
 #load the data as a spare matrix
 plants <- read.transactions("plants.data.txt", format = "basket", sep = ",", cols = 1)
-
 #explore data
 summary(plants)
 ```
@@ -71,7 +71,6 @@ To do this, we are going to convert the transactional sparse matrix into a logic
 ```{r}
 #the arules function as() with the "matrix" parameter converts the transactional sparse matrix into a logical matrix
 plant_matrix <- as(plants, "matrix")
-
 #let's make sure it worked
 head(plant_matrix[,1:5])
 ```
@@ -82,7 +81,6 @@ We still can't do clustering with this since it is not numerical. Our end goal w
 ```{r}
 #multiple matrix by 1
 plant_matrix <- 1*plant_matrix
-
 #see if it worked
 head(plant_matrix[,1:5])
 ```
@@ -110,8 +108,6 @@ plant_matrix[which(rowSums(plant_matrix)==0)]
 There are no species that have no locations; this is good!
 
 
-
-
 Now let's convert the matrix to a data frame in order to properly cluster the data. 
 
 ```{r}
@@ -120,26 +116,23 @@ plant_df <- as.data.frame(plant_matrix)
 
 Choose k by geographical/climate regions as well as by plant hieracrhy
 
-Choosing a proper value for k is one of the most difficult things in k-means clustering. Since there is no hard and fast rule, it is a kind of arbitrary process. The best way to pick a k value is through subject matter expertise and context knowledge. For this example, three possible cluster amounts come to mind. First, we can cluster based on climactic regions. Second, we can cluster based on geographical regions. Third, we can cluster based on families of plants located in the data. Since plant classification is very hierarchical and defined, this shouldn't be too hard to find. 
+Choosing a proper value for k is one of the most difficult things in k-means clustering. Since there is no hard and fast rule, it is a kind of arbitrary process. The best way to pick a k value is through subject matter expertise and context knowledge. For this example, three possible cluster amounts come to mind. First, we can cluster based on geographical regions. Second, we can cluster based on climactic regions/habitats. Third, we can cluster based on classification families of the plants located within the data.
 
-First, we are going to use a k of 10, which represents the 10 climactic regions/habitat types of North America: 
+First, we are going to use a k of 8, which represents the 8 major physical/geographic regions in North America: 
 
-1) Tropical Moist Broadleaf Forests
-2) Tropical Dry Broadleaf Forests
-3) Temperate Broadleaf and Mixed Forests
-4) Temperate Coniferous Forests
-5) Temperate Grasslands, Savannas, and Shrublands
-6) Flooded Grasslands
-7) Mediterranean Forests, Woodlands, Savanna, and Scrub
-8) Deserts and Xeric Shrublands
-9) Taiga and Boreal Forests
-10) Tundra 
+1) Coastal Plains
+2) Appalachian Mountains
+3) Canadian Shield
+4) Interior Lowlands
+5) Great Plains
+6) Rocky Mountains
+7) Basin and Range
+8) Coastal Range
 
 ```{r}
 #set random seed to follow
 set.seed(1234)
-
-plant_clusters <- kmeans(plant_df, 10)
+plant_clusters <- kmeans(plant_df, 8)
 ```
 
 
@@ -158,7 +151,7 @@ plant_clusters$centers
 ```
 
 
-If a number here is above 0.5 it indicates that the cluster is above average in interest in that category.The closer to 1 the stronger the relationship between the state and the cluster. The closer to 0, the weaker the relationship. For example, clusters 2, 6, 10 are above average in Wyoming (and other states as well). 
+If a number here is above 0.5 it indicates that the cluster is above average in interest in that category.The closer to 1 the stronger the relationship between the state and the cluster. The closer to 0, the weaker the relationship. For example, clusters 4, 5, 6 are above average in Wyoming (and other states as well). 
 
 Now let's try try to improve model performance. 
 
@@ -168,20 +161,19 @@ Let's add the clusters as a column to the original data frame.
 plant_df$cluster <- plant_clusters$cluster
 ```
 
-Check it out with some states in the Southeastern USA.
+Check it out with some states in the SOuthern USA.
 
 ```{r}
-plant_df[1:5, c("cluster", "fl", "ga", "nc", "sc")]
+plant_df[1:5, c("cluster", "al", "ar", "la", "ms", "fl")]
 ```
-As we can see, some of the species that are prevalent in similar climate zones are indeed in the same cluster.
+As we can see, some of the species that are prevalent in similar geographic zones are indeed in the same cluster.
 
-Let's see the states/provinces represented by each cluster. We are going to do this by adding up all of the 1s locate din each states column.
+Let's see the states/provinces represented by each cluster. We are going to do this by adding up all of the 1s located in each state's column.
 
 ```{r}
 library(tidyverse)
 #filter the data by cluster number then add columns and transpose
 clust1_top <- plant_df %>% filter(cluster == 1) %>% summarise_all(funs(sum)) %>% t()
-
 #remove cluster row and make data frame
 clust1_top <- as.data.frame(clust1_top[-71,])
 #rename sum column as number of plants
@@ -193,11 +185,12 @@ clust1_top <- clust1_top[order(-clust1_top$numberOfPlants),]
 #display top 10 by cluster
 clust1_top[1:10,]
 ```
+The purpose of printing out the top 10 states is to illustrate the geographic regions in which the relevant cluster of plants is primarily located. In this case, it seems that it may have been clustered into the Basin and Range region (CA, TX, AZ, NM, OR, NV, UT, WA, CO)
+
 
 ```{r}
 #filter the data by cluster number then add columns and transpose
 clust2_top <- plant_df %>% filter(cluster == 2) %>% summarise_all(funs(sum)) %>% t()
-
 #remove cluster row and make data frame
 clust2_top <- as.data.frame(clust2_top[-71,])
 #rename sum column as number of plants
@@ -209,10 +202,11 @@ clust2_top <- clust2_top[order(-clust2_top$numberOfPlants),]
 #display top 10 by cluster
 clust2_top[1:10,]
 ```
+This cluster seems to represent the Appalachian Mts. region (NY, MA, PA, CT, ON, ME, NJ, NH, VT)
+
 ```{r}
 #filter the data by cluster number then add columns and transpose
 clust3_top <- plant_df %>% filter(cluster == 3) %>% summarise_all(funs(sum)) %>% t()
-
 #remove cluster row and make data frame
 clust3_top <- as.data.frame(clust3_top[-71,])
 #rename sum column as number of plants
@@ -224,11 +218,11 @@ clust3_top <- clust3_top[order(-clust3_top$numberOfPlants),]
 #display top 10 by cluster
 clust3_top[1:10,]
 ```
+This cluster seems to represent the Coastal Plain region (PR, VI, FL, TX, LA, GA, AL)
 
 ```{r}
 #filter the data by cluster number then add columns and transpose
 clust4_top <- plant_df %>% filter(cluster == 4) %>% summarise_all(funs(sum)) %>% t()
-
 #remove cluster row and make data frame
 clust4_top <- as.data.frame(clust4_top[-71,])
 #rename sum column as number of plants
@@ -240,11 +234,11 @@ clust4_top <- clust4_top[order(-clust4_top$numberOfPlants),]
 #display top 10 by cluster
 clust4_top[1:10,]
 ```
+This cluster seems to represent the Interior Lowlands region (IL, NY, PA, OH, VA, MI, WI, ON, IN, MO)
 
 ```{r}
 #filter the data by cluster number then add columns and transpose
 clust5_top <- plant_df %>% filter(cluster == 5) %>% summarise_all(funs(sum)) %>% t()
-
 #remove cluster row and make data frame
 clust5_top <- as.data.frame(clust5_top[-71,])
 #rename sum column as number of plants
@@ -256,11 +250,11 @@ clust5_top <- clust5_top[order(-clust5_top$numberOfPlants),]
 #display top 10 by cluster
 clust5_top[1:10,]
 ```
+This cluster seems to represent the Canadian Shield region (ON, BC, QC, AB, MB, SK, MN, MI, WI)
 
 ```{r}
 #filter the data by cluster number then add columns and transpose
 clust6_top <- plant_df %>% filter(cluster == 6) %>% summarise_all(funs(sum)) %>% t()
-
 #remove cluster row and make data frame
 clust6_top <- as.data.frame(clust6_top[-71,])
 #rename sum column as number of plants
@@ -272,11 +266,11 @@ clust6_top <- clust6_top[order(-clust6_top$numberOfPlants),]
 #display top 10 by cluster
 clust6_top[1:10,]
 ```
+This cluster seems to represent the Rocky Mts. region (ID, MT, WY, UT, CO, BC)
 
 ```{r}
 #filter the data by cluster number then add columns and transpose
 clust7_top <- plant_df %>% filter(cluster == 7) %>% summarise_all(funs(sum)) %>% t()
-
 #remove cluster row and make data frame
 clust7_top <- as.data.frame(clust7_top[-71,])
 #rename sum column as number of plants
@@ -288,11 +282,11 @@ clust7_top <- clust7_top[order(-clust7_top$numberOfPlants),]
 #display top 10 by cluster
 clust7_top[1:10,]
 ```
+This cluster seems to represent either the Appalachian Mts. or Coastal Plain regions.
 
 ```{r}
 #filter the data by cluster number then add columns and transpose
 clust8_top <- plant_df %>% filter(cluster == 8) %>% summarise_all(funs(sum)) %>% t()
-
 #remove cluster row and make data frame
 clust8_top <- as.data.frame(clust8_top[-71,])
 #rename sum column as number of plants
@@ -304,13 +298,183 @@ clust8_top <- clust8_top[order(-clust8_top$numberOfPlants),]
 #display top 10 by cluster
 clust8_top[1:10,]
 ```
+This cluster seems to represent either the Interior Lowlands or Coastal Plain regions.
+
+This k-means clustering shows significant actionable variation between the 8 clusters. 
+
+Next, we are going to use a k of 10, which represents the 10 climactic regions/habitat types of North America: 
+
+1) Tropical Moist Broadleaf Forests
+2) Tropical Dry Broadleaf Forests
+3) Temperate Broadleaf and Mixed Forests
+4) Temperate Coniferous Forests
+5) Temperate Grasslands, Savannas, and Shrublands
+6) Flooded Grasslands
+7) Mediterranean Forests, Woodlands, Savanna, and Scrub
+8) Deserts and Xeric Shrublands
+9) Taiga and Boreal Forests
+10) Tundra 
+
+```{r}
+#set random seed to follow
+set.seed(1234)
+plant_clusters10 <- kmeans(plant_df, 10)
+```
+
+Now we have our clusters! Let's investigate further and evaluate performance. 
+
+Let's check out the relative size of the clusters.
+
+```{r}
+plant_clusters10$size
+```
+As expected, some of the clusters have changed in size from the previous iteration, indicating that there should be some differences in the clustering. Let's take a look.
+
+```{r}
+#add the clusters10 as a column to the original data frame
+plant_df$cluster10 <- plant_clusters10$cluster
+```
+
+Check it out with some states in the Southeastern USA.
+
+```{r}
+plant_df[1:5, c("cluster10", "fl", "ga", "nc", "sc")]
+```
+
+Once again, let's see the states/provinces represented by each cluster.
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust1_top1 <- plant_df %>% filter(cluster10 == 1) %>% summarise_all(funs(sum)) %>% t()
+#remove cluster row and make data frame
+clust1_top1 <- as.data.frame(clust1_top1[-c(71,72),])
+#rename sum column as number of plants
+colnames(clust1_top1) <- "numberOfPlants"
+#make a 1st column with the state names
+clust1_top1 <- rownames_to_column(clust1_top1, "State/Province")
+#put columns in descending order by number of plants
+clust1_top1 <- clust1_top1[order(-clust1_top1$numberOfPlants),]
+#display top 10 by cluster
+clust1_top1[1:10,]
+```
+This cluster seems to represent the Deserts and Xeric Shrublands region (CA, OR, TX, WA, NV, ID)
 
 ```{r}
 #filter the data by cluster number then add columns and transpose
-clust9_top <- plant_df %>% filter(cluster == 9) %>% summarise_all(funs(sum)) %>% t()
-
+clust2_top1 <- plant_df %>% filter(cluster10 == 2) %>% summarise_all(funs(sum)) %>% t()
 #remove cluster row and make data frame
-clust9_top <- as.data.frame(clust9_top[-71,])
+clust2_top1 <- as.data.frame(clust2_top1[-c(71,72),])
+#rename sum column as number of plants
+colnames(clust2_top1) <- "numberOfPlants"
+#make a 1st column with the state names
+clust2_top1 <- rownames_to_column(clust2_top1, "State/Province")
+#put columns in descending order by number of plants
+clust2_top1 <- clust2_top1[order(-clust2_top1$numberOfPlants),]
+#display top 10 by cluster
+clust2_top1[1:10,]
+```
+This cluster seems to represent the Temperate Broadleaf and Mixed Forests region (NY, MA, PA, CT, ON, ME, MI, NJ, NH, VT)
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust3_top1 <- plant_df %>% filter(cluster10 == 3) %>% summarise_all(funs(sum)) %>% t()
+#remove cluster row and make data frame
+clust3_top1 <- as.data.frame(clust3_top1[-c(71,72),])
+#rename sum column as number of plants
+colnames(clust3_top1) <- "numberOfPlants"
+#make a 1st column with the state names
+clust3_top1 <- rownames_to_column(clust3_top1, "State/Province")
+#put columns in descending order by number of plants
+clust3_top1 <- clust3_top1[order(-clust3_top1$numberOfPlants),]
+#display top 10 by cluster
+clust3_top1[1:10,]
+```
+This cluster seems to represent a mix of various climates -- including Tropical Moist Broadleaf Forests, Flooded Grasslands, and Temperate Grasslands
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust4_top1 <- plant_df %>% filter(cluster10 == 4) %>% summarise_all(funs(sum)) %>% t()
+#remove cluster row and make data frame
+clust4_top1 <- as.data.frame(clust4_top1[-c(71,72),])
+#rename sum column as number of plants
+colnames(clust4_top1) <- "numberOfPlants"
+#make a 1st column with the state names
+clust4_top1 <- rownames_to_column(clust4_top1, "State/Province")
+#put columns in descending order by number of plants
+clust4_top1 <- clust4_top1[order(-clust4_top1$numberOfPlants),]
+#display top 10 by cluster
+clust4_top1[1:10,]
+```
+This cluster seems to represent the Tempereate Broadleaf and Mixed Forests region (PA, NY, VA, MD, OH, TN, KY, IL, CT, NJ)
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust5_top1 <- plant_df %>% filter(cluster10 == 5) %>% summarise_all(funs(sum)) %>% t()
+#remove cluster row and make data frame
+clust5_top1 <- as.data.frame(clust5_top1[-c(71,72),])
+#rename sum column as number of plants
+colnames(clust5_top1) <- "numberOfPlants"
+#make a 1st column with the state names
+clust5_top1 <- rownames_to_column(clust5_top1, "State/Province")
+#put columns in descending order by number of plants
+clust5_top1 <- clust5_top1[order(-clust5_top1$numberOfPlants),]
+#display top 10 by cluster
+clust5_top1[1:10,]
+```
+This cluster seems to represent the Taija and Boreal Forests region (ON, BC, QC, AB, MB, SK, MN)
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust6_top1 <- plant_df %>% filter(cluster10 == 6) %>% summarise_all(funs(sum)) %>% t()
+#remove cluster row and make data frame
+clust6_top1 <- as.data.frame(clust6_top1[-c(71,72),])
+#rename sum column as number of plants
+colnames(clust6_top1) <- "numberOfPlants"
+#make a 1st column with the state names
+clust6_top1 <- rownames_to_column(clust6_top1, "State/Province")
+#put columns in descending order by number of plants
+clust6_top1 <- clust6_top1[order(-clust6_top1$numberOfPlants),]
+#display top 10 by cluster
+clust6_top1[1:10,]
+```
+This cluster seems to represent either the Deserts and Xeric Shrublands region or Temperate Grasslands, Savannas, and Shrublands region
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust7_top1 <- plant_df %>% filter(cluster10 == 7) %>% summarise_all(funs(sum)) %>% t()
+#remove cluster row and make data frame
+clust7_top1 <- as.data.frame(clust7_top1[-c(71,72),])
+#rename sum column as number of plants
+colnames(clust7_top1) <- "numberOfPlants"
+#make a 1st column with the state names
+clust7_top1 <- rownames_to_column(clust7_top1, "State/Province")
+#put columns in descending order by number of plants
+clust7_top1 <- clust7_top1[order(-clust7_top1$numberOfPlants),]
+#display top 10 by cluster
+clust7_top1[1:10,]
+```
+This cluster seems to represent either the Temperate Broadleaf and Mixed Forests region or Temperate Coniferous Forests region
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust8_top1 <- plant_df %>% filter(cluster10 == 8) %>% summarise_all(funs(sum)) %>% t()
+#remove cluster row and make data frame
+clust8_top1 <- as.data.frame(clust8_top1[-c(71,72),])
+#rename sum column as number of plants
+colnames(clust8_top1) <- "numberOfPlants"
+#make a 1st column with the state names
+clust8_top1 <- rownames_to_column(clust8_top1, "State/Province")
+#put columns in descending order by number of plants
+clust8_top1 <- clust8_top1[order(-clust8_top1$numberOfPlants),]
+#display top 10 by cluster
+clust8_top1[1:10,]
+```
+This cluster seems to represent either the Temperate Broadleaf and Mixed Forests region or Temperate Coniferous Forests region
+
+```{r}
+#filter the data by cluster number then add columns and transpose
+clust9_top <- plant_df %>% filter(cluster10 == 9) %>% summarise_all(funs(sum)) %>% t()
+#remove cluster row and make data frame
+clust9_top <- as.data.frame(clust9_top[-c(71,72),])
 #rename sum column as number of plants
 colnames(clust9_top) <- "numberOfPlants"
 #make a 1st column with the state names
@@ -320,13 +484,13 @@ clust9_top <- clust9_top[order(-clust9_top$numberOfPlants),]
 #display top 10 by cluster
 clust9_top[1:10,]
 ```
+This cluster seems to represent the Temperate Coniferous Forests (ID, MT, WY, UT, OR, CO, WA, CA, BC)
 
 ```{r}
 #filter the data by cluster number then add columns and transpose
-clust10_top <- plant_df %>% filter(cluster == 10) %>% summarise_all(funs(sum)) %>% t()
-
+clust10_top <- plant_df %>% filter(cluster10 == 10) %>% summarise_all(funs(sum)) %>% t()
 #remove cluster row and make data frame
-clust10_top <- as.data.frame(clust10_top[-71,])
+clust10_top <- as.data.frame(clust10_top[-c(71,72),])
 #rename sum column as number of plants
 colnames(clust10_top) <- "numberOfPlants"
 #make a 1st column with the state names
@@ -336,14 +500,43 @@ clust10_top <- clust10_top[order(-clust10_top$numberOfPlants),]
 #display top 10 by cluster
 clust10_top[1:10,]
 ```
+This cluster seems to represent the Temperate Broadleaf and Mixed Forests region (IL, NY, PA, OH, VA, MI, WI, ON, IN, MO)
+
+Finally,  we would consider trying to cluster by plant classification hierarchy. Because it is specified that the names provided in the dataset is either the plant genus or species, we will go one level above in the hierarchy (Family) in order to determine an appropriate k value. After surveying several plant families, it seemed that most families contained about 10-20 genera within each (i.e. Sapindales (10), Cupressaceae (15), Polypodiales (20)). As a result, we will set our k to 15 in order to attempt to classify based on plant classification. Disclaimer: we would need t consult a plant expert in order to properly choose the value of k. 15 is our assumption.
+
+```{r}
+#set random seed to follow
+set.seed(1234)
+plant_clusters15 <- kmeans(plant_df, 15)
+```
+
+Now we have our clusters! Let's investigate further and evaluate performance. 
+
+Let's check out the relative size of the clusters.
+
+```{r}
+plant_clusters15$size
+```
+
+```{r}
+#add the clusters15 as a column to the original data frame
+plant_df$cluster15 <- plant_clusters15$cluster
+```
+
+Check it out with some states in the Southeastern USA.
+
+```{r}
+#not sure which columns to include here... i guess maybe just cluster20? but seems weird to not compare to any base metrics
+plant_df[1:10, c("cluster15", "cluster10","fl", "ga", "nc", "sc")]
+```
+By clustering by family, we have already made the underlying assumptio that Kingdom = Plantae and Subkindom = Vascular plants. However, since we are not plant experts, we cannot necessarily draw conclusions from this iteration of clustering and therefore cannot match up each cluster to a specific family, but would now hand off this part of the analysis to a plant expert.
 
 
-This k-means clustering shows significant actionable variation between the 10 clusters. 
 
-Theoretically, we would try to run this same 10 cluster approach but use Hamming(binary) distance instead of Euclidean. However, we weren't able to find a package to implement this seamlessly.
+Theoretically, we would try to run our clustering approaches again, but using Hamming (binary) distance instead of Euclidean. However, we weren't able to find a package to implement this seamlessly.
 
 
-Now let's run with our analysis using 10 clusters based on climactic regions/habitat areas. We are going to attempt to visualize these clusters. To do this we will be using the packages factoextra and cluster. 
+Now let's run with our analysis using 8 and 10 clusters based on geographic and climactic regions. We are going to attempt to visualize these clusters. To do this we will be using the packages factoextra and cluster. 
 ```{r}
 #if(!require(devtools)) install.packages("devtools")
 #devtools::install_github("kassambara/factoextra")
@@ -352,29 +545,37 @@ library(factoextra)
 library(cluster)
 ```
 
-Let's create a visualization of the 10 clusters. 
+Let's create a visualization of the 8 clusters. 
 ```{r}
-fviz_cluster(plant_clusters, data = plant_df, geom = "point", stand = FALSE, ellipse.type = "norm")
+#visualize clusters minus added cluster columns
+fviz_cluster(plant_clusters, data = plant_df[-c(71:73)], geom = "point", stand = FALSE, ellipse.type = "norm")
 ```
- It looks like there isn't much overlap in the clusters, which indicates a good value of k was chosen! The 10 different clusters are clearly visible. 
+This plot shows clustering based on Dim1 and Dim2, which are the principal components. 
+
+With 8 clusters it seems as though there is a decent mount of crossover between clusters. This makes sense because the grouping based on geographic region is quite arbitrary and a state/province border is an arbitrary line that wouldn't stop plants from crossing over. Clustering based on climactic/habitat regions may be more logical.
+
+Let's create a visualization of the 10 clusters of habitats/climates. 
+```{r}
+#visualize clusters minus added cluster columns
+fviz_cluster(plant_clusters10, data = plant_df[-c(71:73)], geom = "point", stand = FALSE, ellipse.type = "norm")
+```
+
+Here there is also a good amount of overlap, but this makes sense. Every state is located within every cluster because there may be a small amount of plant species from a cluster located in states in which they are not very prevalent. Because of this representation of every state/province in every cluster, you would expect them to overlap. However, there are also significant portions of each cluster that do not overlap (such as the large greenish section near the bottom). These portions indicate the parts of the cluster that are unique- ideally the different climt/habitat regions. This visualization is here to help us understand how the cluster vary across the principal components.
 
 
-Now let's do an elbow plot to determine a possible optimal value of k mathematicall based on homogeneity within the clusters at different k values. We will see how our context/subject matter guesses pan out. 
+Now let's do an elbow plot to determine a possible optimal value of k mathematically based on homogeneity within the clusters at different k values. We will see how our context/subject matter guesses pan out. 
 ```{r}
 set.seed(1234)
 # Compute and plot wss for k = 2 to k = 15
 # Maximal number of clusters based on when the graph inflects
 k.max <- 20 
-
 #calculate within cluster homogeneity at each value of k
-wss <- sapply(1:k.max, function(k){kmeans(plant_df, k)$tot.withinss})
-
-#plot the homogenity "score" at each value of k 1:20.
+wss <- sapply(1:k.max, function(k){kmeans(plant_df[-c(71:73)], k)$tot.withinss})
+#plot the homogenity "score" at each value of k 1:20. 
 plot(1:k.max, wss,
        type="b", pch = 19, frame = FALSE, 
        xlab="Number of clusters K",
        ylab="Total within-clusters sum of squares")
-
 #plot a line at the supposed inflection point
 abline(v = 7, lty =2)
 ```
@@ -382,23 +583,10 @@ It looks like anywhere in the range of 5-10 seems like a good number of clusters
 
 This amount of clusters (5-10) balances not overfitting while still having high homogeneity within clusters. 
 
+**Are there clusters in the data?** Yes, as analyzed above!
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Let's run the apriori algorithm!
+For fun, let's run the apriori algorithm to see if we can find any non-trival association rules!
 
 ```{r}
 plantrules <- apriori(plants)
@@ -427,15 +615,14 @@ inspect(sort(plantrules, by = "lift")[1:5])
 ```
 These rules show that for example, plants in Connecticut are about 7 times more likely to also occur in Massachussets, New Jersey, and New York than the average state. 
 
-Let's explore just the state: Colorado. 
+Let's explore just the state: Oregon. 
 
 ```{r}
 oregonrules <- subset(plantrules, items %in% "or")
-
 inspect(oregonrules)
 ```
 
-This is cool! We can see all states' flora associated with Oregon such as Washington, Idaho, and British Colombia. This is exactly what we'd expect based on Geography. 
+This is cool! We can see all states' flora associated with Oregon such as Washington, Idaho, and British Colombia. This is exactly what we'd expect based on Geography/climate. 
 
 Now let's write these rules to a file. 
 
@@ -447,17 +634,22 @@ Let's also try converting the rules to a dataframe.
 
 ```{r}
 plantrules_df <- as(plantrules, "data.frame")
-
 #explore df 
 str(plantrules_df)
 summary(plantrules_df)
 ```
 
+**References**
 
+[1] 	STHDA, "Determining the optimal number of clusters: 3 must known methods - Unsupervised Machine Learning," Statistical Tools for High-Throughput Data Analysis, [Online]. Available: http://www.sthda.com/english/wiki/print.php?id=239. [Accessed 26 November 2018].
 
+[2] 	Cephas, "Major habitat type CAN USA," Wikimedia Commons, 5 September 2010. [Online]. Available: https://commons.wikimedia.org/wiki/File:Major_habitat_type_CAN_USA.svg. [Accessed 26 November 2018].
 
+[3] 	"Data Wrangling with dplyr and tidyr," RStudio, January 2015. [Online]. Available: https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf. [Accessed 25 November 2018].
 
+[4] 	M.-L. Liberatore, "8 Geographic Regions of North America," thinglink, November 2016. [Online]. Available: https://www.thinglink.com/scene/839995544494407684. [Accessed 27 November 2018].
 
+[5] 	United States Department of Agriculture, "PLANTS Database," Natural Resources Conservation Service, 26 November 2018. [Online]. Available: https://plants.sc.egov.usda.gov/java/. [Accessed 26 November 2018].
 
 
 
